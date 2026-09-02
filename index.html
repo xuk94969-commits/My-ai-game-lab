@@ -103,7 +103,7 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     
-    /* 控制控制按钮 */
+    /* 游戏控制按钮 */
     .game-controls {
       margin-top: 10px;
       display: flex;
@@ -128,7 +128,7 @@
     }
     .btn-secondary:hover { background: #64748b; }
 
-    /* 交互询问气泡（问答机制） */
+    /* 交互引导问答气泡 */
     #question-box {
       display: none;
       width: 100%;
@@ -281,7 +281,6 @@
       const command = input.value.trim();
       if (!command) return;
 
-      // 判断是否已选择维度，若无则触发问答引导
       if (!pendingPrompt) {
         pendingPrompt = command;
         askGameStyleOptions(command);
@@ -290,7 +289,6 @@
       }
     }
 
-    // 智能问答：询问游戏维度（2D/伪3D，视角类型等）
     function askGameStyleOptions(basePrompt) {
       const qBox = document.getElementById('question-box');
       const titleEl = document.getElementById('question-title');
@@ -340,6 +338,7 @@
           loadGame(finalPrompt, data.jsCode);
           pendingPrompt = '';
           document.getElementById('question-box').style.display = 'none';
+          document.getElementById('command-input').value = '';
         } else {
           alert(data.error || '生成失败，请重试');
         }
@@ -389,7 +388,6 @@
       runScript();
     }
 
-    /* 代码查看与导出/下载功能 */
     function viewSourceCode() {
       document.getElementById('code-textarea').value = currentJSCode;
       document.getElementById('code-modal').style.display = 'flex';
@@ -406,7 +404,6 @@
       alert('源代码已复制到剪贴板！');
     }
 
-    // 直接生成并下载单文件可运行的 .html 游戏文件
     function downloadGameHTML() {
       const fullHTML = `<!DOCTYPE html>
 <html>
