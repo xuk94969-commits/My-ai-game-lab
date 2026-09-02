@@ -1,19 +1,11 @@
 require('dotenv').config();
 const express = require('express');
-const path = require('path');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 app.use(express.json());
-
-// 静态文件服务
-app.use(express.static(path.join(__dirname, '.')));
-
-// 根路由直接返回 index.html
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.use(express.static('.'));
 
 // 每 IP 24 小时限制 20 次请求
 const limiter = rateLimit({
@@ -29,7 +21,7 @@ app.post('/api/game', limiter, async (req, res) => {
   try {
     const { command } = req.body;
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-3.6-flash',
+      model: 'gemini-1.5-flash',
       generationConfig: { responseMimeType: 'application/json' }
     });
 
