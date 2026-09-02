@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Game Talkies</title>
+  <title>AI Game Toolkits</title>
   <style>
     * {
       box-sizing: border-box;
@@ -118,12 +118,12 @@
 </head>
 <body>
 
-  <header>🎮 AI Game Talkies</header>
+  <header>🎮 AI Game Toolkits</header>
 
   <main>
     <!-- 欢迎界面 -->
     <div id="welcome-screen">
-      <h1>欢迎回到 AI Game Talkies</h1>
+      <h1>欢迎回到 AI Game Toolkits</h1>
       <p>你想要创作什么游戏呢？在下方输入你的奇思妙想吧！</p>
     </div>
 
@@ -136,15 +136,13 @@
   <footer>
     <div class="input-box">
       <input type="text" id="command-input" placeholder="例如：做一块弹球打砖块游戏..." />
-      <button id="send-btn" onclick="generateGame()">生成中...</button>
+      <button id="send-btn" onclick="generateGame()">生成游戏</button>
     </div>
   </footer>
 
   <script>
-    const sendBtn = document.getElementById('send-btn');
-    sendBtn.innerText = '生成游戏';
-
     async function generateGame() {
+      const sendBtn = document.getElementById('send-btn');
       const input = document.getElementById('command-input');
       const command = input.value.trim();
       if (!command) return;
