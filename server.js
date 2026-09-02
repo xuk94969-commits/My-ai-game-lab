@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 app.use(express.json());
@@ -14,25 +14,26 @@ const limiter = rateLimit({
   message: { error: '今日 20 次生成机会已用完，明天再来吧！' }
 });
 
-// 初始化 Gemini AI
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+// 初始化 Gemini AI 客户端
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post('/api/game', limiter, async (req, res) => {
   try {
     const { command } = req.body;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: command,
-      config: {
-        responseMimeType: 'application/json',
-        systemInstruction: `你是一个 Canvas 游戏开发助手。根据用户指令生成游戏 JS 代码。
-严格仅返回 JSON 格式：{"gameTitle":"名称","jsCode":"完整的 JS 代码，直接基于 id 为 gameCanvas 的 canvas 绘制，用自执行函数包裹，清理函数挂在 window.__destroyCurrentGame"}`
-      }
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      generationConfig: { responseMimeType: 'application/json' }
     });
 
-    const result = JSON.parse(response.text);
-    res.json({ success: true, jsCode: result.jsCode });
+    const prompt = `你是一个 Canvas 游戏开发助手。根据用户指令生成游戏 JS 代码。
+严格仅返回 JSON 格式：{"gameTitle":"名称","jsCode":"完整的 JS 代码，直接基于 id 为 gameCanvas 的 canvas 绘制，用自执行函数包裹，清理函数挂在 window.__destroyCurrentGame"}
+用户指令：${command}`;
+
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
+    const data = JSON.parse(responseText);
+
+    res.json({ success: true, jsCode: data.jsCode });
 
   } catch (err) {
     console.error(err);
