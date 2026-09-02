@@ -196,21 +196,40 @@
       resize: none;
     }
 
-    /* 底部输入框 */
+    /* 底部输入框组件 */
     footer { width: 100%; max-width: 800px; padding: 10px 20px 20px 20px; }
     .input-box {
       display: flex;
-      gap: 12px;
+      align-items: center;
+      gap: 8px;
       background: #1e293b;
-      padding: 8px 12px;
+      padding: 6px 12px;
       border-radius: 999px;
       border: 1px solid #334155;
     }
     .input-box input {
-      flex: 1; background: transparent; border: none; outline: none; color: #fff; padding: 8px 16px;
+      flex: 1; background: transparent; border: none; outline: none; color: #fff; padding: 8px;
     }
-    .input-box button {
-      background: #38bdf8; color: #0f172a; border: none; border-radius: 999px; padding: 10px 24px; font-weight: bold; cursor: pointer;
+    .btn-mic {
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 50%;
+      transition: background 0.2s;
+    }
+    .btn-mic:hover { background: #334155; }
+    .btn-mic.recording {
+      animation: pulse 1s infinite alternate;
+      background: #ef4444;
+    }
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.15); }
+    }
+    .input-box button.btn-send {
+      background: #38bdf8; color: #0f172a; border: none; border-radius: 999px; padding: 8px 20px; font-weight: bold; cursor: pointer;
     }
   </style>
 </head>
@@ -230,7 +249,7 @@
     <!-- 初始欢迎界面 -->
     <div id="welcome-screen">
       <h1>欢迎回到 AI Game Toolkits</h1>
-      <p>你想要创作什么游戏呢？在下方输入你的奇思妙想吧！</p>
+      <p>你想要创作什么游戏呢？在下方输入或使用语音说话吧！</p>
     </div>
 
     <!-- 游戏 Canvas 画布 -->
@@ -252,7 +271,8 @@
     <footer>
       <div class="input-box">
         <input type="text" id="command-input" placeholder="例如：做一块弹球打砖块游戏..." />
-        <button id="send-btn" onclick="startOrGenerate()">发送</button>
+        <button class="btn-mic" id="mic-btn" title="语音输入" onclick="toggleSpeechRecognition()">🎙️</button>
+        <button class="btn-send" id="send-btn" onclick="startOrGenerate()">发送</button>
       </div>
     </footer>
   </div>
@@ -273,8 +293,55 @@
     let gameHistory = JSON.parse(localStorage.getItem('ai_game_history') || '[]');
     let currentJSCode = '';
     let pendingPrompt = '';
+    let recognition = null;
+    let isRecording = false;
 
-    window.onload = () => { renderHistory(); };
+    window.onload = () => { 
+      renderHistory(); 
+      initSpeechRecognition();
+    };
+
+    /* 初始化语音识别 (Web Speech API) */
+    function initSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.lang = 'zh-CN';
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[0][0].transcript;
+          document.getElementById('command-input').value = transcript;
+          stopRecording();
+        };
+
+        recognition.onerror = () => { stopRecording(); };
+        recognition.onend = () => { stopRecording(); };
+      } else {
+        document.getElementById('mic-btn').style.display = 'none';
+      }
+    }
+
+    function toggleSpeechRecognition() {
+      if (!recognition) return;
+      if (isRecording) {
+        recognition.stop();
+        stopRecording();
+      } else {
+        recognition.start();
+        isRecording = true;
+        const micBtn = document.getElementById('mic-btn');
+        micBtn.classList.add('recording');
+        document.getElementById('command-input').placeholder = "正在聆听中...";
+      }
+    }
+
+    function stopRecording() {
+      isRecording = false;
+      const micBtn = document.getElementById('mic-btn');
+      micBtn.classList.remove('recording');
+      document.getElementById('command-input').placeholder = "例如：做一块弹球打砖块游戏...";
+    }
 
     function startOrGenerate() {
       const input = document.getElementById('command-input');
