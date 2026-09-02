@@ -5,81 +5,199 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Game Toolkits</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background-color: #0f172a;
       color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+    
+    /* 侧边栏：历史记录 */
+    #sidebar {
+      width: 260px;
+      background: #1e293b;
+      border-right: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+    }
+    #sidebar h2 { font-size: 1rem; color: #94a3b8; margin-bottom: 12px; }
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .history-item {
+      padding: 10px;
+      background: #334155;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.2s;
+    }
+    .history-item:hover { background: #475569; }
+
+    /* 主界面 */
+    #main-content {
+      flex: 1;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       align-items: center;
-      overflow: hidden;
+      position: relative;
     }
+    
     header {
       width: 100%;
-      padding: 20px;
+      padding: 16px;
       text-align: center;
-      font-size: 1.2rem;
       font-weight: bold;
       color: #94a3b8;
-      letter-spacing: 1px;
     }
-    main {
-      flex: 1;
-      width: 100%;
-      max-width: 900px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      position: relative;
-      padding: 20px;
+
+    #current-prompt {
+      display: none;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid #38bdf8;
+      color: #38bdf8;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
     }
-    /* 欢迎标题样式 */
+
+    /* 欢迎界面 */
     #welcome-screen {
       text-align: center;
-      transition: opacity 0.5s ease;
+      margin: auto;
     }
     #welcome-screen h1 {
       font-size: 2.2rem;
-      font-weight: 700;
       background: linear-gradient(135deg, #38bdf8, #818cf8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 12px;
     }
-    #welcome-screen p {
-      color: #94a3b8;
-      font-size: 1.1rem;
-    }
-    /* 画布区域 */
+    #welcome-screen p { color: #94a3b8; }
+
+    /* 游戏 Canvas 画布 */
     #game-container {
-      width: 100%;
-      height: 100%;
       display: none;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
+      flex: 1;
       position: relative;
     }
     canvas {
       background: #000;
       border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      max-width: 100%;
-      max-height: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
-    /* 底部输入框 */
-    footer {
+    
+    /* 控制控制按钮 */
+    .game-controls {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn-action {
+      background: #38bdf8;
+      color: #0f172a;
+      font-weight: bold;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-secondary {
+      background: #475569;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: #64748b; }
+
+    /* 交互询问气泡（问答机制） */
+    #question-box {
+      display: none;
       width: 100%;
       max-width: 800px;
-      padding: 20px;
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 10px;
     }
+    .question-title {
+      font-size: 0.95rem;
+      color: #f8fafc;
+      margin-bottom: 10px;
+    }
+    .option-chips {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      background: #334155;
+      color: #38bdf8;
+      border: 1px solid #38bdf8;
+      font-size: 0.85rem;
+      padding: 6px 14px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .chip:hover {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+
+    /* 源码查看弹窗 */
+    #code-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+    .modal-content {
+      background: #1e293b;
+      width: 80%;
+      max-width: 800px;
+      height: 70vh;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    textarea {
+      flex: 1;
+      background: #0f172a;
+      color: #38bdf8;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: monospace;
+      resize: none;
+    }
+
+    /* 底部输入框 */
+    footer { width: 100%; max-width: 800px; padding: 10px 20px 20px 20px; }
     .input-box {
       display: flex;
       gap: 12px;
@@ -89,39 +207,27 @@
       border: 1px solid #334155;
     }
     .input-box input {
-      flex: 1;
-      background: transparent;
-      border: none;
-      outline: none;
-      color: #fff;
-      font-size: 1rem;
-      padding: 8px 16px;
+      flex: 1; background: transparent; border: none; outline: none; color: #fff; padding: 8px 16px;
     }
     .input-box button {
-      background: #38bdf8;
-      color: #0f172a;
-      border: none;
-      border-radius: 999px;
-      padding: 10px 24px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background 0.2s ease;
-    }
-    .input-box button:hover {
-      background: #7dd3fc;
-    }
-    .input-box button:disabled {
-      background: #475569;
-      cursor: not-allowed;
+      background: #38bdf8; color: #0f172a; border: none; border-radius: 999px; padding: 10px 24px; font-weight: bold; cursor: pointer;
     }
   </style>
 </head>
 <body>
 
-  <header>🎮 AI Game Toolkits</header>
+  <!-- 历史版本侧边栏 -->
+  <div id="sidebar">
+    <h2>🕒 历史游戏</h2>
+    <div class="history-list" id="history-list"></div>
+  </div>
 
-  <main>
-    <!-- 欢迎界面 -->
+  <div id="main-content">
+    <header>🎮 AI Game Toolkits</header>
+
+    <div id="current-prompt"></div>
+
+    <!-- 初始欢迎界面 -->
     <div id="welcome-screen">
       <h1>欢迎回到 AI Game Toolkits</h1>
       <p>你想要创作什么游戏呢？在下方输入你的奇思妙想吧！</p>
@@ -129,24 +235,94 @@
 
     <!-- 游戏 Canvas 画布 -->
     <div id="game-container">
-      <canvas id="gameCanvas" width="800" height="500"></canvas>
+      <canvas id="gameCanvas" width="800" height="420"></canvas>
+      <div class="game-controls">
+        <button class="btn-action" onclick="downloadGameHTML()">📥 下载 HTML 文件</button>
+        <button class="btn-secondary" onclick="viewSourceCode()">📄 查看源码</button>
+        <button class="btn-secondary" onclick="resetToHome()">✕ 新建游戏</button>
+      </div>
     </div>
-  </main>
 
-  <footer>
-    <div class="input-box">
-      <input type="text" id="command-input" placeholder="例如：做一块弹球打砖块游戏..." />
-      <button id="send-btn" onclick="generateGame()">生成游戏</button>
+    <!-- 交互引导问答气泡 -->
+    <div id="question-box">
+      <div class="question-title" id="question-title">🤖 AI 建议：选择你想打造的游戏维度</div>
+      <div class="option-chips" id="option-chips"></div>
     </div>
-  </footer>
+
+    <footer>
+      <div class="input-box">
+        <input type="text" id="command-input" placeholder="例如：做一块弹球打砖块游戏..." />
+        <button id="send-btn" onclick="startOrGenerate()">发送</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 查看源码 Modal -->
+  <div id="code-modal">
+    <div class="modal-content">
+      <h3 style="color:#fff;">完整游戏源代码</h3>
+      <textarea id="code-textarea" readonly></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:10px;">
+        <button class="btn-secondary" onclick="closeCodeModal()">关闭</button>
+        <button class="btn-action" onclick="copyCode()">复制源码</button>
+      </div>
+    </div>
+  </div>
 
   <script>
-    async function generateGame() {
-      const sendBtn = document.getElementById('send-btn');
+    let gameHistory = JSON.parse(localStorage.getItem('ai_game_history') || '[]');
+    let currentJSCode = '';
+    let pendingPrompt = '';
+
+    window.onload = () => { renderHistory(); };
+
+    function startOrGenerate() {
       const input = document.getElementById('command-input');
       const command = input.value.trim();
       if (!command) return;
 
+      // 判断是否已选择维度，若无则触发问答引导
+      if (!pendingPrompt) {
+        pendingPrompt = command;
+        askGameStyleOptions(command);
+      } else {
+        executeGenerate(pendingPrompt + "（风格/类型要求：" + command + "）");
+      }
+    }
+
+    // 智能问答：询问游戏维度（2D/伪3D，视角类型等）
+    function askGameStyleOptions(basePrompt) {
+      const qBox = document.getElementById('question-box');
+      const titleEl = document.getElementById('question-title');
+      const chipsEl = document.getElementById('option-chips');
+
+      titleEl.innerText = `🤖 针对“${basePrompt}”，你想选择哪种画面风格和视角？`;
+      chipsEl.innerHTML = '';
+
+      const options = [
+        "经典 2D 横版风格",
+        "伪 3D 视角（第一人称/斜45度）",
+        "复古像素风格",
+        "极简几何风"
+      ];
+
+      options.forEach(opt => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.innerText = opt;
+        chip.onclick = () => {
+          qBox.style.display = 'none';
+          const finalPrompt = `${basePrompt}，使用 ${opt}`;
+          executeGenerate(finalPrompt);
+        };
+        chipsEl.appendChild(chip);
+      });
+
+      qBox.style.display = 'block';
+    }
+
+    async function executeGenerate(finalPrompt) {
+      const sendBtn = document.getElementById('send-btn');
       sendBtn.disabled = true;
       sendBtn.innerText = '生成中...';
 
@@ -154,23 +330,16 @@
         const res = await fetch('/api/game', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command })
+          body: JSON.stringify({ command: finalPrompt })
         });
         const data = await res.json();
 
         if (data.success && data.jsCode) {
-          // 隐藏欢迎语，显示游戏画布
-          document.getElementById('welcome-screen').style.display = 'none';
-          document.getElementById('game-container').style.display = 'flex';
-
-          // 清理旧游戏
-          if (window.__destroyCurrentGame) {
-            try { window.__destroyCurrentGame(); } catch(e){}
-          }
-
-          // 执行新的游戏代码
-          const runScript = new Function(data.jsCode);
-          runScript();
+          currentJSCode = data.jsCode;
+          saveHistory(finalPrompt, data.jsCode);
+          loadGame(finalPrompt, data.jsCode);
+          pendingPrompt = '';
+          document.getElementById('question-box').style.display = 'none';
         } else {
           alert(data.error || '生成失败，请重试');
         }
@@ -178,8 +347,102 @@
         alert('网络请求失败：' + err.message);
       } finally {
         sendBtn.disabled = false;
-        sendBtn.innerText = '生成游戏';
+        sendBtn.innerText = '发送';
       }
+    }
+
+    function saveHistory(prompt, jsCode) {
+      const newItem = { id: Date.now(), prompt, jsCode };
+      gameHistory.unshift(newItem);
+      localStorage.setItem('ai_game_history', JSON.stringify(gameHistory));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      const listEl = document.getElementById('history-list');
+      listEl.innerHTML = '';
+      gameHistory.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'history-item';
+        div.innerText = item.prompt;
+        div.onclick = () => {
+          currentJSCode = item.jsCode;
+          loadGame(item.prompt, item.jsCode);
+        };
+        listEl.appendChild(div);
+      });
+    }
+
+    function loadGame(prompt, jsCode) {
+      document.getElementById('welcome-screen').style.display = 'none';
+      document.getElementById('game-container').style.display = 'flex';
+      
+      const promptEl = document.getElementById('current-prompt');
+      promptEl.style.display = 'block';
+      promptEl.innerText = `💡 当前游戏：${prompt}`;
+
+      if (window.__destroyCurrentGame) {
+        try { window.__destroyCurrentGame(); } catch(e){}
+      }
+
+      const runScript = new Function(jsCode);
+      runScript();
+    }
+
+    /* 代码查看与导出/下载功能 */
+    function viewSourceCode() {
+      document.getElementById('code-textarea').value = currentJSCode;
+      document.getElementById('code-modal').style.display = 'flex';
+    }
+
+    function closeCodeModal() {
+      document.getElementById('code-modal').style.display = 'none';
+    }
+
+    function copyCode() {
+      const textarea = document.getElementById('code-textarea');
+      textarea.select();
+      document.execCommand('copy');
+      alert('源代码已复制到剪贴板！');
+    }
+
+    // 直接生成并下载单文件可运行的 .html 游戏文件
+    function downloadGameHTML() {
+      const fullHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI Generated Game</title>
+  <style>
+    body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+    canvas { background: #111; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <canvas id="gameCanvas" width="800" height="500"></canvas>
+  <script>
+    ${currentJSCode}
+  <\/script>
+</body>
+</html>`;
+
+      const blob = new Blob([fullHTML], { type: 'text/html' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'my_ai_game.html';
+      a.click();
+    }
+
+    function resetToHome() {
+      if (window.__destroyCurrentGame) {
+        try { window.__destroyCurrentGame(); } catch(e){}
+      }
+      document.getElementById('welcome-screen').style.display = 'block';
+      document.getElementById('game-container').style.display = 'none';
+      document.getElementById('current-prompt').style.display = 'none';
+      document.getElementById('question-box').style.display = 'none';
+      document.getElementById('command-input').value = '';
+      pendingPrompt = '';
     }
   </script>
 </body>
