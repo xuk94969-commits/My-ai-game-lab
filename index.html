@@ -320,7 +320,7 @@
   </div>
 
   <script>
-    // 默认内置你的特定 Token 凭证
+    // 默认内置凭据
     const DEFAULT_API_KEY = "AQ.Ab8RN6KcSN839JLOF7haPuf0_H0bra_0-V54FZK5DrJZbkpWzw";
 
     let gameHistory = JSON.parse(localStorage.getItem('ai_game_history') || '[]');
@@ -443,6 +443,7 @@
       qBox.style.display = 'block';
     }
 
+    // 已替换为直接请求 Vercel api/generate 中转接口的逻辑
     async function executeGenerate(finalPrompt) {
       const sendBtn = document.getElementById('send-btn');
       const apiKey = document.getElementById('api-key-input').value.trim() || DEFAULT_API_KEY;
@@ -450,32 +451,13 @@
       sendBtn.disabled = true;
       sendBtn.innerText = '生成中...';
 
-      const systemInstruction = `你是一个 Canvas JavaScript 游戏专家。
-只输出可直接在 JavaScript 中运行的代码，不要包含任何 markdown 标记（如 \`\`\`javascript）、不要包含 HTML，也不要包含任何解释。
-必须在全局生成 canvas 上绘制游戏，canvas 的 id 为 "gameCanvas"。
-在游戏开始或重新加载时，必须定义 window.__destroyCurrentGame 方法用于清理定时器和事件监听。`;
-
       try {
-        const isBearerToken = apiKey.startsWith("AQ.");
-        const url = isBearerToken 
-          ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
-          : `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-
-        const headers = { 'Content-Type': 'application/json' };
-        if (isBearerToken) {
-          headers['Authorization'] = `Bearer ${apiKey}`;
-        }
-
-        const res = await fetch(url, {
+        const res = await fetch('/api/generate', {
           method: 'POST',
-          headers: headers,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{
-              parts: [
-                { text: systemInstruction },
-                { text: finalPrompt }
-              ]
-            }]
+            prompt: finalPrompt,
+            apiKey: apiKey
           })
         });
 
