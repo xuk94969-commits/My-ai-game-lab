@@ -57,10 +57,33 @@
     
     header {
       width: 100%;
-      padding: 16px;
-      text-align: center;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #1e293b;
+      border-bottom: 1px solid #334155;
+    }
+    .brand { font-weight: bold; color: #94a3b8; }
+    .key-bar { display: flex; gap: 8px; align-items: center; }
+    .key-bar input {
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      width: 240px;
+    }
+    .key-bar button {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
       font-weight: bold;
-      color: #94a3b8;
+      cursor: pointer;
+      font-size: 0.85rem;
     }
 
     #current-prompt {
@@ -71,6 +94,7 @@
       padding: 6px 16px;
       border-radius: 20px;
       font-size: 0.9rem;
+      margin-top: 10px;
       margin-bottom: 10px;
     }
 
@@ -242,7 +266,13 @@
   </div>
 
   <div id="main-content">
-    <header>🎮 AI Game Toolkits</header>
+    <header>
+      <div class="brand">🎮 AI Game Toolkits</div>
+      <div class="key-bar">
+        <input type="password" id="api-key-input" placeholder="输入 Gemini API Key" />
+        <button onclick="saveApiKey()">保存 Key</button>
+      </div>
+    </header>
 
     <div id="current-prompt"></div>
 
@@ -290,8 +320,8 @@
   </div>
 
   <script>
-    // 在此处填入你的 Gemini API Key
-    const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+    // 默认内置的 Key
+    const DEFAULT_API_KEY = "AQ.Ab8RN6IU3zAAMEuAzoZMv9LXCKR45nUChk666CnPNhkJpPw7oQ";
 
     let gameHistory = JSON.parse(localStorage.getItem('ai_game_history') || '[]');
     let currentJSCode = '';
@@ -302,9 +332,23 @@
     window.onload = () => { 
       renderHistory(); 
       initSpeechRecognition();
+      
+      const savedKey = localStorage.getItem('gemini_api_key');
+      document.getElementById('api-key-input').value = savedKey || DEFAULT_API_KEY;
     };
 
-    /* 初始化语音识别 (Web Speech API) */
+    function saveApiKey() {
+      const key = document.getElementById('api-key-input').value.trim();
+      if (key) {
+        localStorage.setItem('gemini_api_key', key);
+        alert('API Key 已保存！');
+      } else {
+        localStorage.removeItem('gemini_api_key');
+        document.getElementById('api-key-input').value = DEFAULT_API_KEY;
+        alert('已重置为默认 Key');
+      }
+    }
+
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
@@ -353,54 +397,63 @@
 
       if (!pendingPrompt) {
         pendingPrompt = command;
-        askGameStyleOptions(command);
+        askGameOptions(command);
       } else {
-        executeGenerate(pendingPrompt + "（风格/类型要求：" + command + "）");
+        executeGenerate(pendingPrompt + "（补充要求：" + command + "）");
       }
     }
 
-    function askGameStyleOptions(basePrompt) {
+    /* 智能根据用户输入，选择触发不同维度的问题 */
+    function askGameOptions(basePrompt) {
       const qBox = document.getElementById('question-box');
       const titleEl = document.getElementById('question-title');
       const chipsEl = document.getElementById('option-chips');
-
-      titleEl.innerText = `🤖 针对“${basePrompt}”，你想选择哪种画面风格和视角？`;
       chipsEl.innerHTML = '';
 
-      const options = [
-        "经典 2D 横版风格",
-        "伪 3D 视角（第一人称/斜45度）",
-        "复古像素风格",
-        "极简几何风"
-      ];
+      const lowerPrompt = basePrompt.toLowerCase();
 
+      // 检测是否已经包含画风或视角词（如 2d, 3d, 像素, 横版, 几何等）
+      const hasStyleKeywords = /(2d|3d|像素|横版|视角|几何|复古|卡通|写实)/.test(lowerPrompt);
+
+      if (!hasStyleKeywords) {
+        // 1. 如果没写画风，询问画风视角
+        titleEl.innerText = `🤖 针对“${basePrompt}”，你想选择哪种画面风格和视角？`;
+        const options = ["经典 2D 横版风格", "伪 3D 视角（第一人称/斜45度）", "复古像素风格", "极简几何风"];
+        renderChips(options, basePrompt, qBox, chipsEl);
+      } else {
+        // 2. 如果已经写了画风/视角（如 2D跑酷），自动切换为问关卡模式/玩法形式
+        titleEl.innerText = `🤖 检测到你想要【${basePrompt}】，你希望游戏的关卡或流程形式是？`;
+        const options = [
+          "无限挑战模式（难度随时间递增）",
+          "闯关关卡制（包含多关和终点 BOSS）",
+          "轻度剧情对话/任务引导式",
+          "沙盒自由探索/无尽模式"
+        ];
+        renderChips(options, basePrompt, qBox, chipsEl);
+      }
+    }
+
+    function renderChips(options, basePrompt, qBox, chipsEl) {
       options.forEach(opt => {
         const chip = document.createElement('div');
         chip.className = 'chip';
         chip.innerText = opt;
         chip.onclick = () => {
           qBox.style.display = 'none';
-          const finalPrompt = `${basePrompt}，使用 ${opt}`;
+          const finalPrompt = `${basePrompt}，采取 ${opt}`;
           executeGenerate(finalPrompt);
         };
         chipsEl.appendChild(chip);
       });
-
       qBox.style.display = 'block';
     }
 
-    /* 前端直接请求 Gemini API，绕过后端 10 秒超时限制 */
     async function executeGenerate(finalPrompt) {
       const sendBtn = document.getElementById('send-btn');
+      const apiKey = document.getElementById('api-key-input').value.trim() || DEFAULT_API_KEY;
+
       sendBtn.disabled = true;
       sendBtn.innerText = '生成中...';
-
-      if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-        alert("请先在代码中配置有效的 GEMINI_API_KEY！");
-        sendBtn.disabled = false;
-        sendBtn.innerText = '发送';
-        return;
-      }
 
       const systemInstruction = `你是一个 Canvas JavaScript 游戏专家。
 只输出可直接在 JavaScript 中运行的代码，不要包含任何 markdown 标记（如 \`\`\`javascript）、不要包含 HTML，也不要包含任何解释。
@@ -408,7 +461,7 @@
 在游戏开始或重新加载时，必须定义 window.__destroyCurrentGame 方法用于清理定时器和事件监听。`;
 
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -425,7 +478,6 @@
 
         if (data.candidates && data.candidates[0].content.parts[0].text) {
           let jsCode = data.candidates[0].content.parts[0].text;
-          // 清除 AI 输出中可能包含的 markdown 标签
           jsCode = jsCode.replace(/```javascript/g, '').replace(/```js/g, '').replace(/```/g, '').trim();
 
           currentJSCode = jsCode;
