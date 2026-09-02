@@ -290,6 +290,9 @@
   </div>
 
   <script>
+    // 在此处填入你的 Gemini API Key
+    const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+
     let gameHistory = JSON.parse(localStorage.getItem('ai_game_history') || '[]');
     let currentJSCode = '';
     let pendingPrompt = '';
@@ -386,31 +389,56 @@
       qBox.style.display = 'block';
     }
 
+    /* 前端直接请求 Gemini API，绕过后端 10 秒超时限制 */
     async function executeGenerate(finalPrompt) {
       const sendBtn = document.getElementById('send-btn');
       sendBtn.disabled = true;
       sendBtn.innerText = '生成中...';
 
+      if (!GEMINI_API_KEY || GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
+        alert("请先在代码中配置有效的 GEMINI_API_KEY！");
+        sendBtn.disabled = false;
+        sendBtn.innerText = '发送';
+        return;
+      }
+
+      const systemInstruction = `你是一个 Canvas JavaScript 游戏专家。
+只输出可直接在 JavaScript 中运行的代码，不要包含任何 markdown 标记（如 \`\`\`javascript）、不要包含 HTML，也不要包含任何解释。
+必须在全局生成 canvas 上绘制游戏，canvas 的 id 为 "gameCanvas"。
+在游戏开始或重新加载时，必须定义 window.__destroyCurrentGame 方法用于清理定时器和事件监听。`;
+
       try {
-        const res = await fetch('/api/game', {
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: finalPrompt })
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { text: systemInstruction },
+                { text: finalPrompt }
+              ]
+            }]
+          })
         });
+
         const data = await res.json();
 
-        if (data.success && data.jsCode) {
-          currentJSCode = data.jsCode;
-          saveHistory(finalPrompt, data.jsCode);
-          loadGame(finalPrompt, data.jsCode);
+        if (data.candidates && data.candidates[0].content.parts[0].text) {
+          let jsCode = data.candidates[0].content.parts[0].text;
+          // 清除 AI 输出中可能包含的 markdown 标签
+          jsCode = jsCode.replace(/```javascript/g, '').replace(/```js/g, '').replace(/```/g, '').trim();
+
+          currentJSCode = jsCode;
+          saveHistory(finalPrompt, jsCode);
+          loadGame(finalPrompt, jsCode);
           pendingPrompt = '';
           document.getElementById('question-box').style.display = 'none';
           document.getElementById('command-input').value = '';
         } else {
-          alert(data.error || '生成失败，请重试');
+          alert('生成失败：' + (data.error?.message || '未知错误'));
         }
       } catch (err) {
-        alert('网络请求失败：' + err.message);
+        alert('网络请求失败：' + err.message + '（请检查 API Key 或网络环境）');
       } finally {
         sendBtn.disabled = false;
         sendBtn.innerText = '发送';
