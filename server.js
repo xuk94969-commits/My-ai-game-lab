@@ -1,11 +1,19 @@
 require('dotenv').config();
 const express = require('express');
+const path = require('path');
 const rateLimit = require('express-rate-limit');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 app.use(express.json());
-app.use(express.static('.'));
+
+// 静态文件服务
+app.use(express.static(path.join(__dirname, '.')));
+
+// 根路由直接返回 index.html
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 // 每 IP 24 小时限制 20 次请求
 const limiter = rateLimit({
