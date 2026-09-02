@@ -29,7 +29,7 @@ app.post('/api/game', limiter, async (req, res) => {
   try {
     const { command } = req.body;
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       generationConfig: { responseMimeType: 'application/json' }
     });
 
