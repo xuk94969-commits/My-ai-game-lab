@@ -3,64 +3,186 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 游戏生成器</title>
+  <title>AI Game Talkies</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #121214; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
-    #gameCanvas { flex: 1; width: 100%; background: #000; }
-    .input-box { padding: 12px; display: flex; gap: 8px; background: #18181c; }
-    input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #333; background: #222; color: #fff; }
-    button { padding: 10px 16px; border-radius: 6px; border: none; background: #38bdf8; font-weight: bold; cursor: pointer; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      overflow: hidden;
+    }
+    header {
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #94a3b8;
+      letter-spacing: 1px;
+    }
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      padding: 20px;
+    }
+    /* 欢迎标题样式 */
+    #welcome-screen {
+      text-align: center;
+      transition: opacity 0.5s ease;
+    }
+    #welcome-screen h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+    #welcome-screen p {
+      color: #94a3b8;
+      font-size: 1.1rem;
+    }
+    /* 画布区域 */
+    #game-container {
+      width: 100%;
+      height: 100%;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+    canvas {
+      background: #000;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      max-width: 100%;
+      max-height: 100%;
+    }
+    /* 底部输入框 */
+    footer {
+      width: 100%;
+      max-width: 800px;
+      padding: 20px;
+    }
+    .input-box {
+      display: flex;
+      gap: 12px;
+      background: #1e293b;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid #334155;
+    }
+    .input-box input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 1rem;
+      padding: 8px 16px;
+    }
+    .input-box button {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 24px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .input-box button:hover {
+      background: #7dd3fc;
+    }
+    .input-box button:disabled {
+      background: #475569;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
 
-  <!-- 游戏画面在这里显示 -->
-  <canvas id="gameCanvas"></canvas>
+  <header>🎮 AI Game Talkies</header>
 
-  <!-- 底部输入框 -->
-  <div class="input-box">
-    <input type="text" id="cmd" placeholder="输入你想玩的游戏（如：做一个跑酷游戏）">
-    <button id="btn">生成</button>
-  </div>
+  <main>
+    <!-- 欢迎界面 -->
+    <div id="welcome-screen">
+      <h1>欢迎回到 AI Game Talkies</h1>
+      <p>你想要创作什么游戏呢？在下方输入你的奇思妙想吧！</p>
+    </div>
+
+    <!-- 游戏 Canvas 画布 -->
+    <div id="game-container">
+      <canvas id="gameCanvas" width="800" height="500"></canvas>
+    </div>
+  </main>
+
+  <footer>
+    <div class="input-box">
+      <input type="text" id="command-input" placeholder="例如：做一块弹球打砖块游戏..." />
+      <button id="send-btn" onclick="generateGame()">生成中...</button>
+    </div>
+  </footer>
 
   <script>
-    const btn = document.getElementById('btn');
-    const input = document.getElementById('cmd');
+    const sendBtn = document.getElementById('send-btn');
+    sendBtn.innerText = '生成游戏';
 
-    btn.onclick = async () => {
-      const text = input.value.trim();
-      if (!text) return;
+    async function generateGame() {
+      const input = document.getElementById('command-input');
+      const command = input.value.trim();
+      if (!command) return;
 
-      btn.disabled = true;
-      btn.innerText = '生成中...';
+      sendBtn.disabled = true;
+      sendBtn.innerText = '生成中...';
 
       try {
         const res = await fetch('/api/game', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ command: text })
+          body: JSON.stringify({ command })
         });
         const data = await res.json();
 
-        if (data.error) {
-          alert(data.error);
-        } else if (data.jsCode) {
-          // 清除旧游戏
-          if (typeof window.__destroyCurrentGame === 'function') {
-            window.__destroyCurrentGame();
+        if (data.success && data.jsCode) {
+          // 隐藏欢迎语，显示游戏画布
+          document.getElementById('welcome-screen').style.display = 'none';
+          document.getElementById('game-container').style.display = 'flex';
+
+          // 清理旧游戏
+          if (window.__destroyCurrentGame) {
+            try { window.__destroyCurrentGame(); } catch(e){}
           }
-          // 运行新游戏代码
-          new Function(data.jsCode)();
+
+          // 执行新的游戏代码
+          const runScript = new Function(data.jsCode);
+          runScript();
+        } else {
+          alert(data.error || '生成失败，请重试');
         }
-      } catch (e) {
-        alert('网络请求失败');
+      } catch (err) {
+        alert('网络请求失败：' + err.message);
       } finally {
-        btn.disabled = false;
-        btn.innerText = '生成';
-        input.value = '';
+        sendBtn.disabled = false;
+        sendBtn.innerText = '生成游戏';
       }
-    };
+    }
   </script>
 </body>
 </html>
