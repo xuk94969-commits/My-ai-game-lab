@@ -73,7 +73,7 @@
       padding: 6px 12px;
       border-radius: 6px;
       font-size: 0.85rem;
-      width: 240px;
+      width: 280px;
     }
     .key-bar button {
       background: #38bdf8;
@@ -269,7 +269,7 @@
     <header>
       <div class="brand">🎮 AI Game Toolkits</div>
       <div class="key-bar">
-        <input type="password" id="api-key-input" placeholder="输入 Gemini API Key" />
+        <input type="password" id="api-key-input" placeholder="输入 API Key 或 Token" />
         <button onclick="saveApiKey()">保存 Key</button>
       </div>
     </header>
@@ -320,8 +320,8 @@
   </div>
 
   <script>
-    // 默认内置的 Key
-    const DEFAULT_API_KEY = "AQ.Ab8RN6IU3zAAMEuAzoZMv9LXCKR45nUChk666CnPNhkJpPw7oQ";
+    // 默认内置你的特定 Token 凭证
+    const DEFAULT_API_KEY = "AQ.Ab8RN6KcSN839JLOF7haPuf0_H0bra_0-V54FZK5DrJZbkpWzw";
 
     let gameHistory = JSON.parse(localStorage.getItem('ai_game_history') || '[]');
     let currentJSCode = '';
@@ -345,7 +345,7 @@
       } else {
         localStorage.removeItem('gemini_api_key');
         document.getElementById('api-key-input').value = DEFAULT_API_KEY;
-        alert('已重置为默认 Key');
+        alert('已重置为默认凭据');
       }
     }
 
@@ -403,7 +403,6 @@
       }
     }
 
-    /* 智能根据用户输入，选择触发不同维度的问题 */
     function askGameOptions(basePrompt) {
       const qBox = document.getElementById('question-box');
       const titleEl = document.getElementById('question-title');
@@ -411,17 +410,13 @@
       chipsEl.innerHTML = '';
 
       const lowerPrompt = basePrompt.toLowerCase();
-
-      // 检测是否已经包含画风或视角词（如 2d, 3d, 像素, 横版, 几何等）
       const hasStyleKeywords = /(2d|3d|像素|横版|视角|几何|复古|卡通|写实)/.test(lowerPrompt);
 
       if (!hasStyleKeywords) {
-        // 1. 如果没写画风，询问画风视角
         titleEl.innerText = `🤖 针对“${basePrompt}”，你想选择哪种画面风格和视角？`;
         const options = ["经典 2D 横版风格", "伪 3D 视角（第一人称/斜45度）", "复古像素风格", "极简几何风"];
         renderChips(options, basePrompt, qBox, chipsEl);
       } else {
-        // 2. 如果已经写了画风/视角（如 2D跑酷），自动切换为问关卡模式/玩法形式
         titleEl.innerText = `🤖 检测到你想要【${basePrompt}】，你希望游戏的关卡或流程形式是？`;
         const options = [
           "无限挑战模式（难度随时间递增）",
@@ -461,9 +456,19 @@
 在游戏开始或重新加载时，必须定义 window.__destroyCurrentGame 方法用于清理定时器和事件监听。`;
 
       try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const isBearerToken = apiKey.startsWith("AQ.");
+        const url = isBearerToken 
+          ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`
+          : `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (isBearerToken) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: headers,
           body: JSON.stringify({
             contents: [{
               parts: [
@@ -487,10 +492,10 @@
           document.getElementById('question-box').style.display = 'none';
           document.getElementById('command-input').value = '';
         } else {
-          alert('生成失败：' + (data.error?.message || '未知错误'));
+          alert('生成失败：' + (data.error?.message || JSON.stringify(data)));
         }
       } catch (err) {
-        alert('网络请求失败：' + err.message + '（请检查 API Key 或网络环境）');
+        alert('网络请求失败：' + err.message);
       } finally {
         sendBtn.disabled = false;
         sendBtn.innerText = '发送';
