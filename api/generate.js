@@ -22,8 +22,6 @@ export default async function handler(req, res) {
 
   try {
     const { prompt } = req.body;
-    
-    // 自动优先读取 Vercel 环境变量里的 Key
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -61,7 +59,13 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    return res.status(response.status).json(data);
+
+    if (!response.ok) {
+      const errMsg = data.error?.message || JSON.stringify(data.error) || 'API 请求异常';
+      return res.status(response.status).json({ error: errMsg });
+    }
+
+    return res.status(200).json(data);
 
   } catch (error) {
     console.error("Proxy Error:", error);
