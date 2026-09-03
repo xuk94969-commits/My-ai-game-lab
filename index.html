@@ -1,580 +1,301 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Game Toolkits</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background-color: #0f172a;
-      color: #f8fafc;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      height: 100vh;
-      display: flex;
-      overflow: hidden;
-    }
-    
-    /* 侧边栏：历史记录 */
-    #sidebar {
-      width: 260px;
-      background: #1e293b;
-      border-right: 1px solid #334155;
-      display: flex;
-      flex-direction: column;
-      padding: 16px;
-    }
-    #sidebar h2 { font-size: 1rem; color: #94a3b8; margin-bottom: 12px; }
-    .history-list {
-      flex: 1;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .history-item {
-      padding: 10px;
-      background: #334155;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      transition: background 0.2s;
-    }
-    .history-item:hover { background: #475569; }
-
-    /* 主界面 */
-    #main-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      position: relative;
-    }
-    
-    header {
-      width: 100%;
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: #1e293b;
-      border-bottom: 1px solid #334155;
-    }
-    .brand { font-weight: bold; color: #94a3b8; }
-    .key-bar { display: flex; gap: 8px; align-items: center; }
-    .key-bar input {
-      background: #0f172a;
-      border: 1px solid #334155;
-      color: #fff;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      width: 280px;
-    }
-    .key-bar button {
-      background: #38bdf8;
-      color: #0f172a;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 0.85rem;
-    }
-
-    #current-prompt {
-      display: none;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid #38bdf8;
-      color: #38bdf8;
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }
-
-    /* 欢迎界面 */
-    #welcome-screen {
-      text-align: center;
-      margin: auto;
-    }
-    #welcome-screen h1 {
-      font-size: 2.2rem;
-      background: linear-gradient(135deg, #38bdf8, #818cf8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 12px;
-    }
-    #welcome-screen p { color: #94a3b8; }
-
-    /* 游戏 Canvas 画布 */
-    #game-container {
-      display: none;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      position: relative;
-    }
-    canvas {
-      background: #000;
-      border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    }
-    
-    /* 游戏控制按钮 */
-    .game-controls {
-      margin-top: 10px;
-      display: flex;
-      gap: 10px;
-    }
-    .btn-action {
-      background: #38bdf8;
-      color: #0f172a;
-      font-weight: bold;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .btn-secondary {
-      background: #475569;
-      color: #fff;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .btn-secondary:hover { background: #64748b; }
-
-    /* 交互引导问答气泡 */
-    #question-box {
-      display: none;
-      width: 100%;
-      max-width: 800px;
-      background: #1e293b;
-      border: 1px solid #38bdf8;
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 10px;
-    }
-    .question-title {
-      font-size: 0.95rem;
-      color: #f8fafc;
-      margin-bottom: 10px;
-    }
-    .option-chips {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .chip {
-      background: #334155;
-      color: #38bdf8;
-      border: 1px solid #38bdf8;
-      font-size: 0.85rem;
-      padding: 6px 14px;
-      border-radius: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .chip:hover {
-      background: #38bdf8;
-      color: #0f172a;
-    }
-
-    /* 源码查看弹窗 */
-    #code-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(0,0,0,0.8);
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-    .modal-content {
-      background: #1e293b;
-      width: 80%;
-      max-width: 800px;
-      height: 70vh;
-      border-radius: 12px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    textarea {
-      flex: 1;
-      background: #0f172a;
-      color: #38bdf8;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 12px;
-      font-family: monospace;
-      resize: none;
-    }
-
-    /* 底部输入框组件 */
-    footer { width: 100%; max-width: 800px; padding: 10px 20px 20px 20px; }
-    .input-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: #1e293b;
-      padding: 6px 12px;
-      border-radius: 999px;
-      border: 1px solid #334155;
-    }
-    .input-box input {
-      flex: 1; background: transparent; border: none; outline: none; color: #fff; padding: 8px;
-    }
-    .btn-mic {
-      background: transparent;
-      border: none;
-      font-size: 1.2rem;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 50%;
-      transition: background 0.2s;
-    }
-    .btn-mic:hover { background: #334155; }
-    .btn-mic.recording {
-      animation: pulse 1s infinite alternate;
-      background: #ef4444;
-    }
-    @keyframes pulse {
-      from { transform: scale(1); }
-      to { transform: scale(1.15); }
-    }
-    .input-box button.btn-send {
-      background: #38bdf8; color: #0f172a; border: none; border-radius: 999px; padding: 8px 20px; font-weight: bold; cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Game Toolkits</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #111827;
+            color: #f3f4f6;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* 侧边栏样式 */
+        .sidebar {
+            width: 260px;
+            background-color: #1f2937;
+            padding: 20px;
+            border-right: 1px solid #374151;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #9ca3af;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        /* 主界面样式 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .header {
+            padding: 15px 25px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+        }
+        .api-key-input {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            width: 240px;
+            outline: none;
+        }
+        .btn-save-key {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .btn-save-key:hover {
+            background-color: #0369a1;
+        }
+        .hero {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+        .hero h1 {
+            font-size: 36px;
+            margin-bottom: 12px;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p {
+            color: #9ca3af;
+            font-size: 16px;
+        }
+        /* 画布生成区 */
+        #game-container {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 90px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            z-index: 5;
+        }
+        #gameCanvas {
+            background-color: #111827;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            border-radius: 8px;
+        }
+        /* 底部输入框 */
+        .input-container {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: center;
+            position: relative;
+            z-index: 10;
+        }
+        .prompt-box {
+            width: 100%;
+            max-width: 800px;
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            padding: 6px 16px;
+        }
+        .prompt-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            padding: 10px;
+            font-size: 15px;
+            outline: none;
+        }
+        .btn-generate {
+            background-color: #0284c7;
+            color: white;
+            border: none;
+            padding: 8px 18px;
+            border-radius: 18px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-generate:hover {
+            background-color: #0369a1;
+        }
+        .btn-generate:disabled {
+            background-color: #4b5563;
+            cursor: not-allowed;
+        }
+    </style>
 </head>
 <body>
 
-  <!-- 历史版本侧边栏 -->
-  <div id="sidebar">
-    <h2>🕒 历史游戏</h2>
-    <div class="history-list" id="history-list"></div>
-  </div>
-
-  <div id="main-content">
-    <header>
-      <div class="brand">🎮 AI Game Toolkits</div>
-      <div class="key-bar">
-        <input type="password" id="api-key-input" placeholder="输入 API Key 或 Token" />
-        <button onclick="saveApiKey()">保存 Key</button>
-      </div>
-    </header>
-
-    <div id="current-prompt"></div>
-
-    <!-- 初始欢迎界面 -->
-    <div id="welcome-screen">
-      <h1>欢迎回到 AI Game Toolkits</h1>
-      <p>你想要创作什么游戏呢？在下方输入或使用语音说话吧！</p>
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-title">
+            <span>🕒</span> 历史游戏
+        </div>
+        <div class="history-list" id="historyList">
+            <!-- 历史生成记录占位 -->
+        </div>
     </div>
 
-    <!-- 游戏 Canvas 画布 -->
-    <div id="game-container">
-      <canvas id="gameCanvas" width="800" height="420"></canvas>
-      <div class="game-controls">
-        <button class="btn-action" onclick="downloadGameHTML()">📥 下载 HTML 文件</button>
-        <button class="btn-secondary" onclick="viewSourceCode()">📄 查看源码</button>
-        <button class="btn-secondary" onclick="resetToHome()">✕ 新建游戏</button>
-      </div>
+    <!-- 主界面 -->
+    <div class="main-content">
+        <div class="header">
+            <input type="password" id="apiKeyInput" class="api-key-input" placeholder="输入 Gemini API Key...">
+            <button class="btn-save-key" id="saveKeyBtn">保存 Key</button>
+        </div>
+
+        <div class="hero" id="heroText">
+            <h1>欢迎回到 AI Game Toolkits</h1>
+            <p>你想创作什么游戏呢？在下方输入你的构想吧！</p>
+        </div>
+
+        <!-- 游戏 Canvas 区域（默认隐藏，生成后显示） -->
+        <div id="game-container" style="display: none;">
+            <canvas id="gameCanvas" width="800" height="500"></canvas>
+        </div>
+
+        <!-- 底部提示词输入栏 -->
+        <div class="input-container">
+            <div class="prompt-box">
+                <input type="text" id="promptInput" class="prompt-input" placeholder="例如：做一个2D跑酷游戏，按空格键跳跃..." />
+                <button class="btn-generate" id="generateBtn">生成中...</button>
+            </div>
+        </div>
     </div>
 
-    <!-- 交互引导问答气泡 -->
-    <div id="question-box">
-      <div class="question-title" id="question-title">🤖 AI 建议：选择你想打造的游戏维度</div>
-      <div class="option-chips" id="option-chips"></div>
-    </div>
+    <script>
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveKeyBtn = document.getElementById('saveKeyBtn');
+        const promptInput = document.getElementById('promptInput');
+        const generateBtn = document.getElementById('generateBtn');
+        const gameContainer = document.getElementById('game-container');
+        const heroText = document.getElementById('heroText');
 
-    <footer>
-      <div class="input-box">
-        <input type="text" id="command-input" placeholder="例如：做一块弹球打砖块游戏..." />
-        <button class="btn-mic" id="mic-btn" title="语音输入" onclick="toggleSpeechRecognition()">🎙️</button>
-        <button class="btn-send" id="send-btn" onclick="startOrGenerate()">发送</button>
-      </div>
-    </footer>
-  </div>
-
-  <!-- 查看源码 Modal -->
-  <div id="code-modal">
-    <div class="modal-content">
-      <h3 style="color:#fff;">完整游戏源代码</h3>
-      <textarea id="code-textarea" readonly></textarea>
-      <div style="display:flex; justify-content:flex-end; gap:10px;">
-        <button class="btn-secondary" onclick="closeCodeModal()">关闭</button>
-        <button class="btn-action" onclick="copyCode()">复制源码</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // 默认内置凭据
-    const DEFAULT_API_KEY = "AQ.Ab8RN6KcSN839JLOF7haPuf0_H0bra_0-V54FZK5DrJZbkpWzw";
-
-    let gameHistory = JSON.parse(localStorage.getItem('ai_game_history') || '[]');
-    let currentJSCode = '';
-    let pendingPrompt = '';
-    let recognition = null;
-    let isRecording = false;
-
-    window.onload = () => { 
-      renderHistory(); 
-      initSpeechRecognition();
-      
-      const savedKey = localStorage.getItem('gemini_api_key');
-      document.getElementById('api-key-input').value = savedKey || DEFAULT_API_KEY;
-    };
-
-    function saveApiKey() {
-      const key = document.getElementById('api-key-input').value.trim();
-      if (key) {
-        localStorage.setItem('gemini_api_key', key);
-        alert('API Key 已保存！');
-      } else {
-        localStorage.removeItem('gemini_api_key');
-        document.getElementById('api-key-input').value = DEFAULT_API_KEY;
-        alert('已重置为默认凭据');
-      }
-    }
-
-    function initSpeechRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.lang = 'zh-CN';
-
-        recognition.onresult = (event) => {
-          const transcript = event.results[0][0].transcript;
-          document.getElementById('command-input').value = transcript;
-          stopRecording();
-        };
-
-        recognition.onerror = () => { stopRecording(); };
-        recognition.onend = () => { stopRecording(); };
-      } else {
-        document.getElementById('mic-btn').style.display = 'none';
-      }
-    }
-
-    function toggleSpeechRecognition() {
-      if (!recognition) return;
-      if (isRecording) {
-        recognition.stop();
-        stopRecording();
-      } else {
-        recognition.start();
-        isRecording = true;
-        const micBtn = document.getElementById('mic-btn');
-        micBtn.classList.add('recording');
-        document.getElementById('command-input').placeholder = "正在聆听中...";
-      }
-    }
-
-    function stopRecording() {
-      isRecording = false;
-      const micBtn = document.getElementById('mic-btn');
-      micBtn.classList.remove('recording');
-      document.getElementById('command-input').placeholder = "例如：做一块弹球打砖块游戏...";
-    }
-
-    function startOrGenerate() {
-      const input = document.getElementById('command-input');
-      const command = input.value.trim();
-      if (!command) return;
-
-      if (!pendingPrompt) {
-        pendingPrompt = command;
-        askGameOptions(command);
-      } else {
-        executeGenerate(pendingPrompt + "（补充要求：" + command + "）");
-      }
-    }
-
-    function askGameOptions(basePrompt) {
-      const qBox = document.getElementById('question-box');
-      const titleEl = document.getElementById('question-title');
-      const chipsEl = document.getElementById('option-chips');
-      chipsEl.innerHTML = '';
-
-      const lowerPrompt = basePrompt.toLowerCase();
-      const hasStyleKeywords = /(2d|3d|像素|横版|视角|几何|复古|卡通|写实)/.test(lowerPrompt);
-
-      if (!hasStyleKeywords) {
-        titleEl.innerText = `🤖 针对“${basePrompt}”，你想选择哪种画面风格和视角？`;
-        const options = ["经典 2D 横版风格", "伪 3D 视角（第一人称/斜45度）", "复古像素风格", "极简几何风"];
-        renderChips(options, basePrompt, qBox, chipsEl);
-      } else {
-        titleEl.innerText = `🤖 检测到你想要【${basePrompt}】，你希望游戏的关卡或流程形式是？`;
-        const options = [
-          "无限挑战模式（难度随时间递增）",
-          "闯关关卡制（包含多关和终点 BOSS）",
-          "轻度剧情对话/任务引导式",
-          "沙盒自由探索/无尽模式"
-        ];
-        renderChips(options, basePrompt, qBox, chipsEl);
-      }
-    }
-
-    function renderChips(options, basePrompt, qBox, chipsEl) {
-      options.forEach(opt => {
-        const chip = document.createElement('div');
-        chip.className = 'chip';
-        chip.innerText = opt;
-        chip.onclick = () => {
-          qBox.style.display = 'none';
-          const finalPrompt = `${basePrompt}，采取 ${opt}`;
-          executeGenerate(finalPrompt);
-        };
-        chipsEl.appendChild(chip);
-      });
-      qBox.style.display = 'block';
-    }
-
-    // 已替换为直接请求 Vercel api/generate 中转接口的逻辑
-    async function executeGenerate(finalPrompt) {
-      const sendBtn = document.getElementById('send-btn');
-      const apiKey = document.getElementById('api-key-input').value.trim() || DEFAULT_API_KEY;
-
-      sendBtn.disabled = true;
-      sendBtn.innerText = '生成中...';
-
-      try {
-        const res = await fetch('/api/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: finalPrompt,
-            apiKey: apiKey
-          })
+        // 1. 初始化并读取本地保存的 Key
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('GEMINI_API_KEY');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+            }
+            generateBtn.innerText = '生成游戏';
         });
 
-        const data = await res.json();
+        // 2. 保存 Key 到本地存储
+        saveKeyBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('GEMINI_API_KEY', key);
+                alert('API Key 已成功保存到当前浏览器！');
+            } else {
+                alert('请输入有效的 API Key');
+            }
+        });
 
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
-          let jsCode = data.candidates[0].content.parts[0].text;
-          jsCode = jsCode.replace(/```javascript/g, '').replace(/```js/g, '').replace(/```/g, '').trim();
+        // 3. 核心请求逻辑：通过代理接口 /api/generate 发送请求
+        generateBtn.addEventListener('click', async () => {
+            const apiKey = apiKeyInput.value.trim();
+            const prompt = promptInput.value.trim();
 
-          currentJSCode = jsCode;
-          saveHistory(finalPrompt, jsCode);
-          loadGame(finalPrompt, jsCode);
-          pendingPrompt = '';
-          document.getElementById('question-box').style.display = 'none';
-          document.getElementById('command-input').value = '';
-        } else {
-          alert('生成失败：' + (data.error?.message || JSON.stringify(data)));
-        }
-      } catch (err) {
-        alert('网络请求失败：' + err.message);
-      } finally {
-        sendBtn.disabled = false;
-        sendBtn.innerText = '发送';
-      }
-    }
+            if (!apiKey) {
+                alert('请先在右上角输入并保存 API Key！');
+                return;
+            }
+            if (!prompt) {
+                alert('请输入游戏生成需求！');
+                return;
+            }
 
-    function saveHistory(prompt, jsCode) {
-      const newItem = { id: Date.now(), prompt, jsCode };
-      gameHistory.unshift(newItem);
-      localStorage.setItem('ai_game_history', JSON.stringify(gameHistory));
-      renderHistory();
-    }
+            // 更改按钮 UI 状态
+            generateBtn.disabled = true;
+            generateBtn.innerText = '生成中...';
 
-    function renderHistory() {
-      const listEl = document.getElementById('history-list');
-      listEl.innerHTML = '';
-      gameHistory.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'history-item';
-        div.innerText = item.prompt;
-        div.onclick = () => {
-          currentJSCode = item.jsCode;
-          loadGame(item.prompt, item.jsCode);
-        };
-        listEl.appendChild(div);
-      });
-    }
+            try {
+                // 指向本地 Vercel 函数代理接口
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        apiKey: apiKey,
+                        prompt: prompt
+                    })
+                });
 
-    function loadGame(prompt, jsCode) {
-      document.getElementById('welcome-screen').style.display = 'none';
-      document.getElementById('game-container').style.display = 'flex';
-      
-      const promptEl = document.getElementById('current-prompt');
-      promptEl.style.display = 'block';
-      promptEl.innerText = `💡 当前游戏：${prompt}`;
+                const data = await response.json();
 
-      if (window.__destroyCurrentGame) {
-        try { window.__destroyCurrentGame(); } catch(e){}
-      }
+                if (!response.ok) {
+                    throw new Error(data.error || '后台中转请求失败');
+                }
 
-      const runScript = new Function(jsCode);
-      runScript();
-    }
+                // 从后端拿回的 Gemini 数据中解析代码
+                const gameCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    function viewSourceCode() {
-      document.getElementById('code-textarea').value = currentJSCode;
-      document.getElementById('code-modal').style.display = 'flex';
-    }
+                if (gameCode) {
+                    // 隐藏欢迎文字，展示游戏画板
+                    heroText.style.display = 'none';
+                    gameContainer.style.display = 'flex';
 
-    function closeCodeModal() {
-      document.getElementById('code-modal').style.display = 'none';
-    }
+                    // 销毁上一次游戏运行的定时器/监听器
+                    if (window.__destroyCurrentGame) {
+                        try {
+                            window.__destroyCurrentGame();
+                        } catch (e) {
+                            console.warn('销毁旧游戏失败:', e);
+                        }
+                    }
 
-    function copyCode() {
-      const textarea = document.getElementById('code-textarea');
-      textarea.select();
-      document.execCommand('copy');
-      alert('源代码已复制到剪贴板！');
-    }
+                    // 净化代码：剔除 markdown 格式声明
+                    const cleanCode = gameCode.replace(/```javascript/g, '').replace(/```/g, '');
 
-    function downloadGameHTML() {
-      const fullHTML = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>AI Generated Game</title>
-  <style>
-    body { background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-    canvas { background: #111; border-radius: 8px; }
-  </style>
-</head>
-<body>
-  <canvas id="gameCanvas" width="800" height="500"></canvas>
-  <script>
-    ${currentJSCode}
-  <\/script>
-</body>
-</html>`;
+                    // 动态执行生成的游戏代码
+                    eval(cleanCode);
+                } else {
+                    alert('未能解析到有效的游戏代码，请重试');
+                }
 
-      const blob = new Blob([fullHTML], { type: 'text/html' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'my_ai_game.html';
-      a.click();
-    }
-
-    function resetToHome() {
-      if (window.__destroyCurrentGame) {
-        try { window.__destroyCurrentGame(); } catch(e){}
-      }
-      document.getElementById('welcome-screen').style.display = 'block';
-      document.getElementById('game-container').style.display = 'none';
-      document.getElementById('current-prompt').style.display = 'none';
-      document.getElementById('question-box').style.display = 'none';
-      document.getElementById('command-input').value = '';
-      pendingPrompt = '';
-    }
-  </script>
+            } catch (error) {
+                console.error('生成出错:', error);
+                alert('网络请求失败: ' + error.message);
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.innerText = '生成游戏';
+            }
+        });
+    </script>
 </body>
 </html>
