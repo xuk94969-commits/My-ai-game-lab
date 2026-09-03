@@ -88,6 +88,7 @@
             display: flex;
             align-items: center;
             padding: 6px 16px;
+            gap: 8px;
         }
         .prompt-input {
             flex: 1;
@@ -98,6 +99,18 @@
             font-size: 15px;
             outline: none;
         }
+        .mic-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: background 0.2s;
+        }
+        .mic-btn:hover { background-color: #374151; }
+        .mic-btn.listening { animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
         .btn-generate {
             background-color: #0284c7;
             color: white;
@@ -107,6 +120,7 @@
             cursor: pointer;
             font-weight: 500;
             transition: all 0.2s;
+            white-space: nowrap;
         }
         .btn-generate:hover { background-color: #0369a1; }
         .btn-generate:disabled { background-color: #4b5563; cursor: not-allowed; }
@@ -124,7 +138,7 @@
     <div class="main-content">
         <div class="hero" id="heroText">
             <h1>欢迎回到 AI Game Toolkits</h1>
-            <p>你想创作什么游戏呢？在下方输入你的构想吧！</p>
+            <p>你想创作什么游戏呢？在下方输入或使用语音说话吧！</p>
         </div>
 
         <div id="game-container" style="display: none;">
@@ -133,7 +147,8 @@
 
         <div class="input-container">
             <div class="prompt-box">
-                <input type="text" id="promptInput" class="prompt-input" placeholder="例如：做一个2D跑酷游戏，按空格键跳跃..." />
+                <input type="text" id="promptInput" class="prompt-input" placeholder="做一个跑酷游戏..." />
+                <button class="mic-btn" id="micBtn" title="语音输入">🎙️</button>
                 <button class="btn-generate" id="generateBtn">生成游戏</button>
             </div>
         </div>
@@ -141,15 +156,45 @@
 
     <script>
         const promptInput = document.getElementById('promptInput');
+        const micBtn = document.getElementById('micBtn');
         const generateBtn = document.getElementById('generateBtn');
         const gameContainer = document.getElementById('game-container');
         const heroText = document.getElementById('heroText');
+
+        // 语音识别逻辑 (Web Speech API)
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = false;
+
+            micBtn.addEventListener('click', () => {
+                try {
+                    recognition.start();
+                    micBtn.classList.add('listening');
+                } catch (e) {
+                    recognition.stop();
+                    micBtn.classList.remove('listening');
+                }
+            });
+
+            recognition.onresult = (event) => {
+                const text = event.results[0][0].transcript;
+                promptInput.value = text;
+                micBtn.classList.remove('listening');
+            };
+
+            recognition.onerror = () => micBtn.classList.remove('listening');
+            recognition.onend = () => micBtn.classList.remove('listening');
+        } else {
+            micBtn.style.display = 'none'; // 浏览器不支持语音时隐藏按钮
+        }
 
         generateBtn.addEventListener('click', async () => {
             const prompt = promptInput.value.trim();
 
             if (!prompt) {
-                alert('请输入游戏生成需求！');
+                alert('请输入或说出游戏生成需求！');
                 return;
             }
 
@@ -166,7 +211,8 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || '生成失败');
+                    const errStr = typeof data.error === 'string' ? data.error : JSON.stringify(data.error);
+                    throw new Error(errStr || '生成失败');
                 }
 
                 const gameCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
