@@ -5,11 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Game Toolkits</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #111827;
@@ -18,7 +14,6 @@
             height: 100vh;
             overflow: hidden;
         }
-        /* 侧边栏样式 */
         .sidebar {
             width: 260px;
             background-color: #1f2937;
@@ -36,44 +31,12 @@
             align-items: center;
             gap: 8px;
         }
-        .history-list {
-            flex: 1;
-            overflow-y: auto;
-        }
-        /* 主界面样式 */
+        .history-list { flex: 1; overflow-y: auto; }
         .main-content {
             flex: 1;
             display: flex;
             flex-direction: column;
             position: relative;
-        }
-        .header {
-            padding: 15px 25px;
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 10px;
-        }
-        .api-key-input {
-            background-color: #1f2937;
-            border: 1px solid #374151;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            width: 240px;
-            outline: none;
-        }
-        .btn-save-key {
-            background-color: #0284c7;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        .btn-save-key:hover {
-            background-color: #0369a1;
         }
         .hero {
             flex: 1;
@@ -91,14 +54,10 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .hero p {
-            color: #9ca3af;
-            font-size: 16px;
-        }
-        /* 画布生成区 */
+        .hero p { color: #9ca3af; font-size: 16px; }
         #game-container {
             position: absolute;
-            top: 60px;
+            top: 20px;
             left: 0;
             right: 0;
             bottom: 90px;
@@ -113,7 +72,6 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.5);
             border-radius: 8px;
         }
-        /* 底部输入框 */
         .input-container {
             padding: 20px 40px;
             display: flex;
@@ -150,139 +108,78 @@
             font-weight: 500;
             transition: all 0.2s;
         }
-        .btn-generate:hover {
-            background-color: #0369a1;
-        }
-        .btn-generate:disabled {
-            background-color: #4b5563;
-            cursor: not-allowed;
-        }
+        .btn-generate:hover { background-color: #0369a1; }
+        .btn-generate:disabled { background-color: #4b5563; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <!-- 侧边栏 -->
     <div class="sidebar">
         <div class="sidebar-title">
             <span>🕒</span> 历史游戏
         </div>
-        <div class="history-list" id="historyList">
-            <!-- 历史生成记录占位 -->
-        </div>
+        <div class="history-list" id="historyList"></div>
     </div>
 
-    <!-- 主界面 -->
     <div class="main-content">
-        <div class="header">
-            <input type="password" id="apiKeyInput" class="api-key-input" placeholder="输入 Gemini API Key...">
-            <button class="btn-save-key" id="saveKeyBtn">保存 Key</button>
-        </div>
-
         <div class="hero" id="heroText">
             <h1>欢迎回到 AI Game Toolkits</h1>
             <p>你想创作什么游戏呢？在下方输入你的构想吧！</p>
         </div>
 
-        <!-- 游戏 Canvas 区域（默认隐藏，生成后显示） -->
         <div id="game-container" style="display: none;">
             <canvas id="gameCanvas" width="800" height="500"></canvas>
         </div>
 
-        <!-- 底部提示词输入栏 -->
         <div class="input-container">
             <div class="prompt-box">
                 <input type="text" id="promptInput" class="prompt-input" placeholder="例如：做一个2D跑酷游戏，按空格键跳跃..." />
-                <button class="btn-generate" id="generateBtn">生成中...</button>
+                <button class="btn-generate" id="generateBtn">生成游戏</button>
             </div>
         </div>
     </div>
 
     <script>
-        const apiKeyInput = document.getElementById('apiKeyInput');
-        const saveKeyBtn = document.getElementById('saveKeyBtn');
         const promptInput = document.getElementById('promptInput');
         const generateBtn = document.getElementById('generateBtn');
         const gameContainer = document.getElementById('game-container');
         const heroText = document.getElementById('heroText');
 
-        // 1. 初始化并读取本地保存的 Key
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedKey = localStorage.getItem('GEMINI_API_KEY');
-            if (savedKey) {
-                apiKeyInput.value = savedKey;
-            }
-            generateBtn.innerText = '生成游戏';
-        });
-
-        // 2. 保存 Key 到本地存储
-        saveKeyBtn.addEventListener('click', () => {
-            const key = apiKeyInput.value.trim();
-            if (key) {
-                localStorage.setItem('GEMINI_API_KEY', key);
-                alert('API Key 已成功保存到当前浏览器！');
-            } else {
-                alert('请输入有效的 API Key');
-            }
-        });
-
-        // 3. 核心请求逻辑：通过代理接口 /api/generate 发送请求
         generateBtn.addEventListener('click', async () => {
-            const apiKey = apiKeyInput.value.trim();
             const prompt = promptInput.value.trim();
 
-            if (!apiKey) {
-                alert('请先在右上角输入并保存 API Key！');
-                return;
-            }
             if (!prompt) {
                 alert('请输入游戏生成需求！');
                 return;
             }
 
-            // 更改按钮 UI 状态
             generateBtn.disabled = true;
             generateBtn.innerText = '生成中...';
 
             try {
-                // 指向本地 Vercel 函数代理接口
                 const response = await fetch('/api/generate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        apiKey: apiKey,
-                        prompt: prompt
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: prompt })
                 });
 
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || '后台中转请求失败');
+                    throw new Error(data.error || '生成失败');
                 }
 
-                // 从后端拿回的 Gemini 数据中解析代码
                 const gameCode = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
                 if (gameCode) {
-                    // 隐藏欢迎文字，展示游戏画板
                     heroText.style.display = 'none';
                     gameContainer.style.display = 'flex';
 
-                    // 销毁上一次游戏运行的定时器/监听器
                     if (window.__destroyCurrentGame) {
-                        try {
-                            window.__destroyCurrentGame();
-                        } catch (e) {
-                            console.warn('销毁旧游戏失败:', e);
-                        }
+                        try { window.__destroyCurrentGame(); } catch (e) {}
                     }
 
-                    // 净化代码：剔除 markdown 格式声明
                     const cleanCode = gameCode.replace(/```javascript/g, '').replace(/```/g, '');
-
-                    // 动态执行生成的游戏代码
                     eval(cleanCode);
                 } else {
                     alert('未能解析到有效的游戏代码，请重试');
@@ -290,7 +187,7 @@
 
             } catch (error) {
                 console.error('生成出错:', error);
-                alert('网络请求失败: ' + error.message);
+                alert('请求失败: ' + error.message);
             } finally {
                 generateBtn.disabled = false;
                 generateBtn.innerText = '生成游戏';
